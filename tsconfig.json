@@ -1,7 +1,11 @@
 {
-  "extends": "./tsconfig.base.json",
-  "compilerOptions": {
-    "noEmit": true
-  },
-  "include": []
+  "files": [],
+  "references": [
+    { "path": "./packages/types" },
+    { "path": "./packages/validation" },
+    { "path": "./packages/config" },
+    { "path": "./packages/shared" },
+    { "path": "./apps/api" },
+    { "path": "./apps/mobile" }
+  ]
 }
