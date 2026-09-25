@@ -61,13 +61,22 @@ A lawyer should be able to manage important practice workflows from one organize
   - Implemented standalone packages: `@lexmate/types`, `@lexmate/validation`, `@lexmate/config`, `@lexmate/shared`.
   - Configured application workspace stubs: `@lexmate/api`, `@lexmate/mobile`.
   - Verified package resolution, build, typecheck, lint, and formatting.
+- Completed Phase 2: React Native Mobile Foundation:
+  - Initialized Expo (SDK 52) application in `apps/mobile/` with TypeScript and Metro monorepo configuration.
+  - Established Expo Router file-based routing architecture with route groups: `(auth)`, `(tabs)`, `cases`, `clients`, `calendar`, `documents`, `tasks`, `payments`, and `ai`.
+  - Created minimalist non-visual route shells across all screen entry points.
+  - Configured TanStack Query `QueryClient` and `QueryClientProvider`.
+  - Configured Zustand `useAuthStore` with token persistence.
+  - Implemented `SecureStorage` layer wrapping `expo-secure-store` with web/testing fallback.
+  - Implemented typed `apiClient` with base URL resolution, parameter serialization, and automatic Bearer token injection.
+  - Verified app configuration (`expo config`), Turbo build, strict typechecking, and ESLint.
 
 ## 4. In Progress
 
 Next implementation sequence:
 
 1. [COMPLETED] Create monorepo.
-2. Initialize React Native + Expo mobile application.
+2. [COMPLETED] Initialize React Native + Expo mobile application.
 3. Initialize NestJS API.
 4. Configure PostgreSQL and Prisma.
 5. Establish authentication.
