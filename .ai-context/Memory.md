@@ -113,11 +113,11 @@ Next implementation sequence:
 4. [COMPLETED] Configure PostgreSQL and Prisma.
 5. [COMPLETED] Establish authentication.
 6. [COMPLETED] Implement shared types/validation packages.
-7. Implement the mobile design system from Figma.
-8. Implement navigation and app shell.
-9. Implement Cases module.
-10. Implement Clients module.
-11. Implement Hearings/Calendar.
+7. [COMPLETED] Implement the mobile design system from Figma (tokens, UI components, 8 core screens, and authentication).
+8. [COMPLETED] Implement navigation and app shell (bottom tabs, deep linking, query-string@7.1.3 fix for expo-router).
+9. Implement Cases module (backend API & full data sync).
+10. Implement Clients module (backend API & full data sync).
+11. Implement Hearings/Calendar (backend API & full data sync).
 12. Implement Documents.
 13. Implement Tasks.
 14. Implement Payments.
