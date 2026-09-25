@@ -9,6 +9,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "dev:api": "pnpm --filter @lexmate/api start:dev",
+    "dev:mobile": "pnpm --filter @lexmate/mobile start",
+    "db:push": "pnpm --filter @lexmate/api run prisma:push",
+    "db:generate": "pnpm --filter @lexmate/api run prisma:generate",
     "clean": "turbo run clean"
   },
   "devDependencies": {
