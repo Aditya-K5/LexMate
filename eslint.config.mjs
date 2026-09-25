@@ -12,6 +12,7 @@ export default tseslint.config(
       '**/.turbo/**',
       '**/.expo/**',
       '**/coverage/**',
+      '**/metro.config.js',
     ],
   },
   {

@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "LexMate",
+    "slug": "lexmate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "lexmate",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lexmate.app"
+    },
+    "android": {
+      "package": "com.lexmate.app"
+    },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}
