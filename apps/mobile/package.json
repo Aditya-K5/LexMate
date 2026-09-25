@@ -1,0 +1,19 @@
+{
+  "name": "@lexmate/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@lexmate/types": "workspace:*",
+    "@lexmate/validation": "workspace:*",
+    "@lexmate/config": "workspace:*",
+    "@lexmate/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
