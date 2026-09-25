@@ -11,7 +11,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:push": "prisma db push",
-    "test:auth": "tsx test/auth.http-spec.ts",
+    "test": "nest build && tsx test/auth-and-authz.spec.ts",
+    "test:auth": "nest build && tsx test/auth-and-authz.spec.ts",
+    "test:http": "nest build && tsx test/auth.http-spec.ts",
     "clean": "rimraf dist"
   },
   "dependencies": {
@@ -42,6 +44,7 @@
     "@types/node": "^22.0.0",
     "@types/passport-jwt": "^4.0.1",
     "prisma": "^6.4.1",
+    "tsx": "^4.23.15",
     "typescript": "^5.8.0"
   },
   "prisma": {

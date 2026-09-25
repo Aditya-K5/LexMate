@@ -88,3 +88,37 @@ export const RefreshTokenSchema = z.object({
 
 export type RefreshTokenInput = z.infer<typeof RefreshTokenSchema>;
 
+export const UpdateOrganizationSchema = z.object({
+  name: z.string().min(2, 'Organization name must be at least 2 characters').optional(),
+});
+
+export type UpdateOrganizationInput = z.infer<typeof UpdateOrganizationSchema>;
+
+export const InviteUserSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').optional(),
+  role: UserRoleSchema.default('LAWYER'),
+  phone: z.string().min(7, 'Phone number must be at least 7 digits').optional(),
+});
+
+export type InviteUserInput = z.infer<typeof InviteUserSchema>;
+
+export const UpdateUserSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  role: UserRoleSchema.optional(),
+  phone: z.string().min(7, 'Phone number must be at least 7 digits').optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
+
+export const AuditLogQuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  action: z.string().optional(),
+  entityType: z.string().optional(),
+  userId: z.string().uuid().optional(),
+});
+
+export type AuditLogQueryInput = z.infer<typeof AuditLogQuerySchema>;

@@ -15,4 +15,15 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
+// 3. Explicit emptyModulePath for pnpm monorepo resolution
+config.resolver.emptyModulePath = path.resolve(
+  monorepoRoot,
+  'node_modules/metro-runtime/src/modules/empty-module.js',
+);
+
+// 4. Clean server config
+if (config.server && 'tls' in config.server) {
+  delete config.server.tls;
+}
+
 module.exports = config;

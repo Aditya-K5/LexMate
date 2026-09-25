@@ -13,6 +13,7 @@
     "dev:mobile": "pnpm --filter @lexmate/mobile start",
     "db:push": "pnpm --filter @lexmate/api run prisma:push",
     "db:generate": "pnpm --filter @lexmate/api run prisma:generate",
+    "test": "pnpm --filter @lexmate/api test",
     "clean": "turbo run clean"
   },
   "devDependencies": {

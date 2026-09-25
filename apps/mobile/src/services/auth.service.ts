@@ -1,5 +1,11 @@
 import { apiClient } from '../lib/api-client';
-import type { AuthResponse, LoginPayload, RegisterPayload, SafeUser, Organization } from '@lexmate/types';
+import type {
+  AuthResponse,
+  LoginPayload,
+  RegisterPayload,
+  SafeUser,
+  Organization,
+} from '@lexmate/types';
 
 export const authService = {
   login: async (payload: LoginPayload): Promise<AuthResponse> => {

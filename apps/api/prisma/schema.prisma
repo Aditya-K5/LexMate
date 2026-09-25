@@ -68,6 +68,7 @@ model Organization {
   updatedAt DateTime @updatedAt
 
   users          User[]
+  sessions       Session[]
   clients        Client[]
   cases          Case[]
   hearings       Hearing[]
@@ -87,18 +88,41 @@ model User {
   passwordHash   String
   name           String
   role           Role     @default(LAWYER)
+  isActive       Boolean  @default(true)
   phone          String?
   avatarUrl      String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sessions       Session[]
   assignedCases  Case[]       @relation("AssignedLawyer")
   assignedTasks  Task[]       @relation("AssignedTasks")
   auditLogs      AuditLog[]
 
   @@index([organizationId])
   @@map("users")
+}
+
+model Session {
+  id             String    @id @default(uuid())
+  organizationId String
+  userId         String
+  token          String    @unique
+  userAgent      String?
+  ipAddress      String?
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
 }
 
 model Client {

@@ -13,6 +13,9 @@
     "android": {
       "package": "com.lexmate.app"
     },
+    "web": {
+      "bundler": "metro"
+    },
     "plugins": ["expo-router", "expo-secure-store"]
   }
 }

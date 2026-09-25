@@ -66,7 +66,9 @@ async function runHttpAuthTest() {
       throw new Error(`Expected 400 Bad Request but got ${resBadInput.status}`);
     }
     const badInputJson = await resBadInput.json();
-    console.log(`✅ Bad input correctly rejected with HTTP 400: ${JSON.stringify(badInputJson.message)}`);
+    console.log(
+      `✅ Bad input correctly rejected with HTTP 400: ${JSON.stringify(badInputJson.message)}`,
+    );
 
     // 3. Test HTTP Registration
     console.log('\n[3/4] Testing POST /auth/register via HTTP...');
@@ -102,7 +104,9 @@ async function runHttpAuthTest() {
     if (meData.data.user.email !== testEmail) {
       throw new Error('Retrieved user email does not match registered email');
     }
-    console.log(`✅ Authenticated request succeeded: Logged in as ${meData.data.user.name} (${meData.data.organization.name})`);
+    console.log(
+      `✅ Authenticated request succeeded: Logged in as ${meData.data.user.name} (${meData.data.organization.name})`,
+    );
 
     console.log('\n🎉 ALL HTTP GUARD & VALIDATION CHECKS PASSED!\n');
   } catch (error) {

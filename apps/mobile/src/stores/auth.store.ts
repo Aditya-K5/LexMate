@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import type { AuthResponse, LoginPayload, Organization, RegisterPayload, SafeUser } from '@lexmate/types';
+import type {
+  AuthResponse,
+  LoginPayload,
+  Organization,
+  RegisterPayload,
+  SafeUser,
+} from '@lexmate/types';
 import { SecureStorage } from '../lib/secure-store';
 import { authService } from '../services/auth.service';
 

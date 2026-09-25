@@ -60,9 +60,12 @@ async function runAuthVerification() {
     if (!regResult.tokens?.accessToken) throw new Error('Registration did not return access token');
     if (!regResult.user?.id) throw new Error('Registration did not return user ID');
     if (!regResult.organization?.id) throw new Error('Registration did not return organization ID');
-    if ((regResult.user as any).passwordHash) throw new Error('Security violation: passwordHash exposed in response');
+    if ((regResult.user as any).passwordHash)
+      throw new Error('Security violation: passwordHash exposed in response');
     console.log(`✅ Registered user: ${regResult.user.name} (${regResult.user.email})`);
-    console.log(`✅ Organization created: ${regResult.organization.name} (slug: ${regResult.organization.slug})`);
+    console.log(
+      `✅ Organization created: ${regResult.organization.name} (slug: ${regResult.organization.slug})`,
+    );
 
     // 2. Verify Audit Log entry in DB
     console.log('\n[2/7] Verifying AuditLog in Supabase Database...');
@@ -133,8 +136,11 @@ async function runAuthVerification() {
     console.log('\n[7/7] Testing Profile Retrieval (/auth/me)...');
     const profileResult = await authService.getProfile(regResult.user.id);
     if (profileResult.user.email !== testEmail) throw new Error('Profile returned incorrect email');
-    if (profileResult.organization.name !== testOrgName) throw new Error('Profile returned incorrect org');
-    console.log(`✅ Profile retrieved: ${profileResult.user.name}, Organization: ${profileResult.organization.name}`);
+    if (profileResult.organization.name !== testOrgName)
+      throw new Error('Profile returned incorrect org');
+    console.log(
+      `✅ Profile retrieved: ${profileResult.user.name}, Organization: ${profileResult.organization.name}`,
+    );
 
     // Clean up test data
     console.log('\n🧹 Cleaning up test artifacts from database...');

@@ -80,6 +80,28 @@ A lawyer should be able to manage important practice workflows from one organize
   - Implemented health check endpoint (`/api/v1/health`) performing live database ping verification.
   - Scaffolded all 12 modular domain modules: `auth`, `users`, `organizations`, `cases`, `clients`, `hearings`, `documents`, `tasks`, `payments`, `notifications`, `ai`, and `audit`.
   - Verified API server startup, database connectivity, health probe, full Turbo build, strict typechecking, and ESLint.
+- Completed Phase 4: Database and Authentication:
+  - Enhanced Prisma schema with active `Session` tracking (`sessions` table) and user status lifecycle (`isActive` flag).
+  - Pushed updated schema to live Supabase PostgreSQL database and regenerated Prisma Client.
+  - Implemented multi-tenancy from the ground up: every protected resource is strictly scoped to an `organizationId`.
+  - Implemented fine-grained Role/Permissions foundation:
+    - Defined `Permission` enum across domain boundaries (Organization, Users, Cases, Clients, Hearings, Documents, Tasks, Payments, Audit).
+    - Established `ROLE_PERMISSIONS` hierarchy mapping roles (`ADMIN`, `LAWYER`, `ASSOCIATE`, `STAFF`) to specific permissions.
+    - Implemented `RolesGuard`, `PermissionsGuard`, and `TenantGuard` to enforce server-side authorization.
+    - Added `@Roles(...)`, `@RequirePermissions(...)`, `@CurrentTenant()`, and `@CurrentUser()` decorators.
+  - Implemented session-backed authentication flow:
+    - User/organization registration (`POST /api/v1/auth/register`) creates tenant organization, admin user, initial audit log, and DB session.
+    - Login (`POST /api/v1/auth/login`) with bcrypt verification, JWT access/refresh token generation, and DB session creation.
+    - Refresh token rotation (`POST /api/v1/auth/refresh`) with database session validity/revocation checks and token rotation.
+    - Session revocation on logout (`POST /api/v1/auth/logout`) with audit logging.
+    - Authenticated profile endpoint (`GET /api/v1/auth/me`) returning user profile, organization, and resolved permissions.
+  - Implemented Organization management module (`GET /organizations/current`, `PATCH /organizations/current` with Admin role protection).
+  - Implemented User management module (`GET /users`, `GET /users/:id`, `POST /users`, `PATCH /users/:id` with tenant scoping and Admin role protection).
+  - Implemented Audit foundation (`AuditService` & `AuditController` with `log` and `findLogs`, strict tenant isolation, and pagination).
+  - Implemented input validation across all endpoints using `class-validator` DTOs and global `ValidationPipe`.
+  - Enforced strict secret protection (password hashes never returned in any response, error messages sanitized).
+  - Added comprehensive 11-step verification test suite (`apps/api/test/auth-and-authz.spec.ts`) validating authentication, validation, duplicate prevention, secret protection, multi-tenant isolation, RBAC, session revocation, and audit logging.
+  - Verified full monorepo build (`pnpm build`), typecheck (`pnpm typecheck`), lint (`pnpm lint`), and format (`pnpm format:check`).
 
 ## 4. In Progress
 
@@ -89,8 +111,8 @@ Next implementation sequence:
 2. [COMPLETED] Initialize React Native + Expo mobile application.
 3. [COMPLETED] Initialize NestJS API.
 4. [COMPLETED] Configure PostgreSQL and Prisma.
-5. Establish authentication.
-6. Implement shared types/validation packages.
+5. [COMPLETED] Establish authentication.
+6. [COMPLETED] Implement shared types/validation packages.
 7. Implement the mobile design system from Figma.
 8. Implement navigation and app shell.
 9. Implement Cases module.

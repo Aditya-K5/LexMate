@@ -14,8 +14,21 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { AuthResponse, JwtPayload, SafeUser, UserRole } from '@lexmate/types';
+import { LogoutDto } from './dto/logout.dto';
+import {
+  AuthResponse,
+  JwtPayload,
+  Permission,
+  ROLE_PERMISSIONS,
+  SafeUser,
+  UserRole,
+} from '@lexmate/types';
 import { Role, User as PrismaUser, Organization as PrismaOrg } from '@prisma/client';
+
+export interface RequestClientContext {
+  ipAddress?: string;
+  userAgent?: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -30,10 +43,10 @@ export class AuthService {
   /**
    * Register a new user and initialize their law firm / practice organization.
    */
-  async register(dto: RegisterDto): Promise<AuthResponse> {
+  async register(dto: RegisterDto, context?: RequestClientContext): Promise<AuthResponse> {
     const normalizedEmail = dto.email.trim().toLowerCase();
 
-    // Check existing user
+    // Check existing user across platform
     const existing = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
@@ -55,12 +68,12 @@ export class AuthService {
       ? `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`
       : baseSlug;
 
-    // Hash password
+    // Hash password with bcrypt
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(dto.password, saltRounds);
 
     try {
-      // Create Organization and User in a transaction
+      // Create Organization, User, and Audit Log atomically in a transaction
       const result = await this.prisma.$transaction(async (tx) => {
         const organization = await tx.organization.create({
           data: {
@@ -76,6 +89,7 @@ export class AuthService {
             passwordHash,
             role: dto.role ?? Role.ADMIN,
             phone: dto.phone?.trim(),
+            isActive: true,
             organizationId: organization.id,
           },
         });
@@ -89,6 +103,7 @@ export class AuthService {
             entityType: 'User',
             entityId: user.id,
             details: { email: user.email, role: user.role, orgName },
+            ipAddress: context?.ipAddress,
           },
         });
 
@@ -102,7 +117,21 @@ export class AuthService {
         role: result.user.role as unknown as UserRole,
       });
 
-      this.logger.log(`New user registered: ${result.user.email} (Org: ${result.organization.name})`);
+      // Record active Session in database
+      await this.prisma.session.create({
+        data: {
+          organizationId: result.organization.id,
+          userId: result.user.id,
+          token: tokens.refreshToken,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          ipAddress: context?.ipAddress,
+          userAgent: context?.userAgent,
+        },
+      });
+
+      this.logger.log(
+        `New user registered: ${result.user.email} (Org: ${result.organization.name})`,
+      );
 
       return {
         user: this.toSafeUser(result.user),
@@ -110,6 +139,7 @@ export class AuthService {
         tokens,
       };
     } catch (error) {
+      if (error instanceof ConflictException) throw error;
       this.logger.error(`Registration failed for ${normalizedEmail}`, error);
       throw new InternalServerErrorException('Failed to complete registration');
     }
@@ -118,7 +148,7 @@ export class AuthService {
   /**
    * Authenticate user with email and password.
    */
-  async login(dto: LoginDto): Promise<AuthResponse> {
+  async login(dto: LoginDto, context?: RequestClientContext): Promise<AuthResponse> {
     const normalizedEmail = dto.email.trim().toLowerCase();
 
     const user = await this.prisma.user.findUnique({
@@ -128,6 +158,12 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException(
+        'Account has been deactivated. Please contact your organization administrator.',
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
@@ -142,20 +178,33 @@ export class AuthService {
       role: user.role as unknown as UserRole,
     });
 
-    // Record login audit event
-    await this.prisma.auditLog
-      .create({
+    // Record session and audit log
+    await Promise.all([
+      this.prisma.session.create({
         data: {
           organizationId: user.organizationId,
           userId: user.id,
-          action: 'USER_LOGIN',
-          entityType: 'User',
-          entityId: user.id,
+          token: tokens.refreshToken,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          ipAddress: context?.ipAddress,
+          userAgent: context?.userAgent,
         },
-      })
-      .catch((err) => {
-        this.logger.warn(`Failed to record login audit log for ${user.id}: ${err.message}`);
-      });
+      }),
+      this.prisma.auditLog
+        .create({
+          data: {
+            organizationId: user.organizationId,
+            userId: user.id,
+            action: 'USER_LOGIN',
+            entityType: 'User',
+            entityId: user.id,
+            ipAddress: context?.ipAddress,
+          },
+        })
+        .catch((err) => {
+          this.logger.warn(`Failed to record login audit log for ${user.id}: ${err.message}`);
+        }),
+    ]);
 
     return {
       user: this.toSafeUser(user),
@@ -165,9 +214,9 @@ export class AuthService {
   }
 
   /**
-   * Refresh JWT access token with a valid refresh token.
+   * Refresh JWT access token with a valid, non-revoked database session.
    */
-  async refreshToken(dto: RefreshTokenDto): Promise<AuthResponse> {
+  async refreshToken(dto: RefreshTokenDto, context?: RequestClientContext): Promise<AuthResponse> {
     const refreshSecret = this.configService.get<string>(
       'JWT_REFRESH_SECRET',
       'lexmate_default_refresh_secret_dev_2026',
@@ -182,6 +231,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
+    // Verify session in database (ensures token revocation and validity)
+    const existingSession = await this.prisma.session.findUnique({
+      where: { token: dto.refreshToken },
+    });
+
+    if (!existingSession || existingSession.revokedAt !== null) {
+      throw new UnauthorizedException('Session has been revoked or is no longer valid');
+    }
+
+    if (existingSession.expiresAt < new Date()) {
+      throw new UnauthorizedException('Session has expired. Please sign in again.');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: { organization: true },
@@ -191,24 +253,105 @@ export class AuthService {
       throw new UnauthorizedException('User account no longer exists');
     }
 
-    const tokens = await this.generateTokens({
+    if (!user.isActive) {
+      throw new UnauthorizedException(
+        'Account has been deactivated. Please contact your organization administrator.',
+      );
+    }
+
+    const newTokens = await this.generateTokens({
       sub: user.id,
       email: user.email,
       organizationId: user.organizationId,
       role: user.role as unknown as UserRole,
     });
 
+    // Rotate session: revoke old session and create fresh session
+    await this.prisma.$transaction([
+      this.prisma.session.update({
+        where: { id: existingSession.id },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.session.create({
+        data: {
+          organizationId: user.organizationId,
+          userId: user.id,
+          token: newTokens.refreshToken,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          ipAddress: context?.ipAddress,
+          userAgent: context?.userAgent,
+        },
+      }),
+    ]);
+
     return {
       user: this.toSafeUser(user),
       organization: user.organization,
-      tokens,
+      tokens: newTokens,
     };
   }
 
   /**
-   * Retrieve current authenticated user profile and organization.
+   * Log out user: revoke session and log audit event.
    */
-  async getProfile(userId: string): Promise<{ user: SafeUser; organization: PrismaOrg }> {
+  async logout(
+    userId: string,
+    organizationId: string,
+    dto?: LogoutDto,
+    context?: RequestClientContext,
+  ): Promise<{ success: boolean; message: string }> {
+    if (dto?.refreshToken) {
+      await this.prisma.session.updateMany({
+        where: {
+          token: dto.refreshToken,
+          userId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+    } else {
+      // Revoke all active sessions for this user
+      await this.prisma.session.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+    }
+
+    // Audit log logout event
+    await this.prisma.auditLog
+      .create({
+        data: {
+          organizationId,
+          userId,
+          action: 'USER_LOGOUT',
+          entityType: 'User',
+          entityId: userId,
+          ipAddress: context?.ipAddress,
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`Failed to record logout audit log for ${userId}: ${err.message}`);
+      });
+
+    return {
+      success: true,
+      message: 'Successfully logged out and session revoked',
+    };
+  }
+
+  /**
+   * Retrieve current authenticated user profile, organization, and resolved permissions.
+   */
+  async getProfile(
+    userId: string,
+  ): Promise<{ user: SafeUser; organization: PrismaOrg; permissions: Permission[] }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { organization: true },
@@ -218,9 +361,13 @@ export class AuthService {
       throw new NotFoundException('User profile not found');
     }
 
+    const userRole = user.role as UserRole;
+    const permissions: Permission[] = ROLE_PERMISSIONS[userRole] || [];
+
     return {
       user: this.toSafeUser(user),
       organization: user.organization,
+      permissions,
     };
   }
 
