@@ -11,7 +11,13 @@ export const EnvSchema = z.object({
     .min(8, 'JWT_SECRET must be at least 8 characters')
     .default('lexmate_default_secret_dev'),
   JWT_EXPIRES_IN: z.string().default('7d'),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(8, 'JWT_REFRESH_SECRET must be at least 8 characters')
+    .default('lexmate_default_refresh_secret_dev_2026'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
 });
+
 
 export type EnvConfig = z.infer<typeof EnvSchema>;
 

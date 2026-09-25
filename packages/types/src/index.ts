@@ -135,3 +135,48 @@ export interface TimelineEvent {
   type: 'HEARING' | 'FILING' | 'ORDER' | 'MEETING' | 'NOTE';
   createdAt: Date;
 }
+
+// ==========================================
+// Authentication Types
+// ==========================================
+
+export type SafeUser = Omit<User, 'createdAt' | 'updatedAt'> & {
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+};
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn?: string;
+}
+
+export interface AuthResponse {
+  user: SafeUser;
+  organization: Organization;
+  tokens: AuthTokens;
+}
+
+export interface JwtPayload {
+  sub: string;
+  email: string;
+  organizationId: string;
+  role: UserRole;
+  iat?: number;
+  exp?: number;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  name: string;
+  organizationName?: string;
+  role?: UserRole;
+  phone?: string;
+}
+
